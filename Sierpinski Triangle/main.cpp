@@ -2,7 +2,7 @@
 #include <gl/glut.h>
 #include <cstdlib>
 #include <queue>
-#include <windows.h>
+#include <vector>
 #include <Space-Time/Vector2D.h>
 
 #define windowSide 1000
@@ -24,47 +24,81 @@ struct Triangle
 
 static std::queue<Triangle> triangles;
 static float image[windowSide][windowSide][3];
+static std::vector<Triangle> vertices;
+static std::vector<Triangle> directions;
+
 
 void display()
 {
 static int level = 0;
 static int nCurrentLevel = 1;
 static int nNextLevel = 0;
+static float t = 0.0;
 
 	glDrawPixels(windowSide,windowSide,GL_RGB,GL_FLOAT,image);
 
-	if(level < levels)
+	if(level<levels)
 	{
-		while(nCurrentLevel--)	// foreach triangle in this level
+		if(t == 0.0)
 		{
-			// calculate center triangle's vertices
-			Triangle &t = triangles.front();	// does not remove the head element of the queue
-			Vector2D<float> c1 = (t.v1+t.v2)/2;
-			Vector2D<float> c2 = (t.v2+t.v3)/2;
-			Vector2D<float> c3 = (t.v3+t.v1)/2;
+			while(nCurrentLevel--)	// foreach triangle in this level
+			{
+				// calculate center triangle's vertices
+				Triangle &t = triangles.front();	// does not remove the head element of the queue
+				Vector2D<float> c1 = (t.v1+t.v2)/2;
+				Vector2D<float> c2 = (t.v2+t.v3)/2;
+				Vector2D<float> c3 = (t.v3+t.v1)/2;
 
-			// draw center triangle
-			glBegin(GL_TRIANGLES);
-				glVertex2fv(c1);
-				glVertex2fv(c2);
-				glVertex2fv(c3);
+				// register center triangle
+				vertices.push_back(Triangle(c1,c2,c3));
+				directions.push_back(Triangle(c2-c1,c3-c2,c1-c3));
+
+				// put smaller triangles in the queue
+				triangles.push(Triangle(t.v1,c1,c3));
+				triangles.push(Triangle(c1,t.v2,c2));
+				triangles.push(Triangle(c3,c2,t.v3));
+
+				// discard used triangle
+				triangles.pop();
+
+				nNextLevel += 3;
+			} // end while
+			nCurrentLevel = nNextLevel;
+			nNextLevel = 0;
+		} // end if
+
+		if(t<=1.0)
+		{
+			glBegin(GL_LINES);
+				for(unsigned int c = 0 ; c < vertices.size() ; ++c)
+				{
+					glVertex2fv(vertices[c].v1);
+					glVertex2fv(vertices[c].v1 + t*directions[c].v1);
+					glVertex2fv(vertices[c].v2);
+					glVertex2fv(vertices[c].v2 + t*directions[c].v2);
+					glVertex2fv(vertices[c].v3);
+					glVertex2fv(vertices[c].v3 + t*directions[c].v3);
+				} // end for
 			glEnd();
+			t += 0.025f;
+		}
+		else
+		{
+			t = 0.0;
+			glBegin(GL_TRIANGLES);
+				for(unsigned int c = 0 ; c < vertices.size() ; ++c)
+				{
+					glVertex2fv(vertices[c].v1);
+					glVertex2fv(vertices[c].v2);
+					glVertex2fv(vertices[c].v3);
+				} // end for
+			glEnd();
+			vertices.clear();
+			directions.clear();
 
-			// put smaller triangles in the queue
-			triangles.push(Triangle(t.v1,c1,c3));
-			triangles.push(Triangle(c1,t.v2,c2));
-			triangles.push(Triangle(c3,c2,t.v3));
-
-			// discard used triangle
-			triangles.pop();
-
-			nNextLevel += 3;
-		} // end while
-		nCurrentLevel = nNextLevel;
-		nNextLevel = 0;
-
-		++level;
-		glReadPixels(0,0,windowSide,windowSide,GL_RGB,GL_FLOAT,image);
+			++level;
+			glReadPixels(0,0,windowSide,windowSide,GL_RGB,GL_FLOAT,image);
+		} // end else
 	} // end if
 
 	glutSwapBuffers();
@@ -73,7 +107,6 @@ static int nNextLevel = 0;
 
 void always()
 {
-	Sleep(333);
 	glutPostRedisplay();
 } // end function always
 
