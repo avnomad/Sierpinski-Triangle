@@ -1,7 +1,8 @@
 #include <gl/glew.h>
 #include <gl/glut.h>
 #include <cstdlib>
-#include <queue>
+#include <windows.h>
+#include <deque>
 #include <vector>
 #include <Space-Time/Vector2D.h>
 
@@ -22,10 +23,15 @@ struct Triangle
 		:v1(av1),v2(av2),v3(av3){}
 }; // end sturct Triangle
 
-static std::queue<Triangle> triangles;
+static std::deque<Triangle> triangles;
 static float image[windowSide][windowSide][3];
 static std::vector<Triangle> vertices;
 static std::vector<Triangle> directions;
+
+static int level = 0;
+static int nCurrentLevel = 1;
+static int nNextLevel = 0;
+static float t = 0.0;
 
 
 void simpleDisplay()
@@ -37,11 +43,6 @@ void simpleDisplay()
 
 void display()
 {
-static int level = 0;
-static int nCurrentLevel = 1;
-static int nNextLevel = 0;
-static float t = 0.0;
-
 	glDrawPixels(windowSide,windowSide,GL_RGB,GL_FLOAT,image);
 
 	if(t<=1.0)
@@ -87,12 +88,12 @@ static float t = 0.0;
 			directions.push_back(Triangle(c2-c1,c3-c2,c1-c3));
 
 			// put smaller triangles in the queue
-			triangles.push(Triangle(t.v1,c1,c3));
-			triangles.push(Triangle(c1,t.v2,c2));
-			triangles.push(Triangle(c3,c2,t.v3));
+			triangles.push_back(Triangle(t.v1,c1,c3));
+			triangles.push_back(Triangle(c1,t.v2,c2));
+			triangles.push_back(Triangle(c3,c2,t.v3));
 
 			// discard used triangle
-			triangles.pop();
+			triangles.pop_front();
 
 			nNextLevel += 3;
 		} // end while
@@ -115,10 +116,43 @@ void always()
 } // end function always
 
 
+void initialize()
+{
+	float triangleSide = windowSide - 2*margin;
+	float h = 0.8660254038f*triangleSide;	// sqrt(3)/2 * triangleSide
+	float vMargin = 0.5f*(windowSide-h);
+	Triangle t;
+
+	t.v1.x = 0.5*windowSide;
+	t.v1.y = vMargin+h;
+	t.v2.x = margin;
+	t.v2.y = vMargin;
+	t.v3.x = margin+triangleSide;
+	t.v3.y = vMargin;
+	triangles.push_back(t);
+
+	vertices.push_back(t);
+	directions.push_back(Triangle(t.v2-t.v1,t.v3-t.v2,t.v1-t.v3));
+} // end function initialize
+
+
 void keyboard(unsigned char key, int x, int y)
 {
 	switch(key)
 	{
+	case '\r':	
+		// reset
+		level = 0;
+		nCurrentLevel = 1;
+		nNextLevel = 0;
+		t = 0.0;
+		ZeroMemory(image,sizeof(image));
+		triangles.clear();
+		vertices.clear();
+		directions.clear();
+		initialize();
+		glutDisplayFunc(display);
+		break;
 	case 27:	// escape key
 		exit(0);
 	} // end switch
@@ -156,23 +190,7 @@ int main(int argc, char **argv)
 	glLineWidth(0.5);
 
 	// application initialization
-	{
-		float triangleSide = windowSide - 2*margin;
-		float h = 0.8660254038f*triangleSide;	// sqrt(3)/2 * triangleSide
-		float vMargin = 0.5f*(windowSide-h);
-		Triangle t;
-
-		t.v1.x = 0.5*windowSide;
-		t.v1.y = vMargin+h;
-		t.v2.x = margin;
-		t.v2.y = vMargin;
-		t.v3.x = margin+triangleSide;
-		t.v3.y = vMargin;
-		triangles.push(t);
-
-		vertices.push_back(t);
-		directions.push_back(Triangle(t.v2-t.v1,t.v3-t.v2,t.v1-t.v3));
-	}
+	initialize();
 
 	// event handling initialization
 	glutIdleFunc(always);
