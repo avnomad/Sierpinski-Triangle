@@ -1,0 +1,8 @@
+syntax: regexp
+Release/*
+ipch/*
+Debug/*
+syntax: glob
+Sierpinski Triangle.sdf
+Sierpinski Triangle.suo
+Sierpinski Triangle.opensdf
