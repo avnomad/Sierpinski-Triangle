@@ -1,7 +1,6 @@
-#include <gl/glew.h>
-#include <gl/glut.h>
+#include <GL/glew.h>
+#include <GL/glut.h>
 #include <cstdlib>
-#include <windows.h>
 #include <deque>
 #include <vector>
 #include <Space-Time/Vector2D.h>
@@ -58,7 +57,7 @@ void display()
 				glVertex2fv(vertices[c].v3 + t*directions[c].v3);
 			} // end for
 		glEnd();
-		t += 0.025f;
+		t += 0.030f;
 	}
 	else
 	{
@@ -140,13 +139,13 @@ void keyboard(unsigned char key, int x, int y)
 {
 	switch(key)
 	{
-	case '\r':	
+	case '\r':	// enter key
 		// reset
 		level = 0;
 		nCurrentLevel = 1;
 		nNextLevel = 0;
 		t = 0.0;
-		ZeroMemory(image,sizeof(image));
+		memset(image,0,sizeof(image));	// clear image to black
 		triangles.clear();
 		vertices.clear();
 		directions.clear();
