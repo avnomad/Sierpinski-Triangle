@@ -21,11 +21,11 @@
 #include <cstdlib>
 #include <deque>
 #include <vector>
+#include <algorithm>
 #include <Space-Time/Vector2D.h>
 
-#define initialWindowSide 1000
 #define initialWindowOffset 20
-#define margin 20.0f
+#define minMargin 20.0f
 #define levels 8
 
 
@@ -139,16 +139,19 @@ void always()
 
 void initializeAnimation()
 {
-	float triangleSide = windowWidth/*not always but should do for now...*/ - 2*margin;
-	float h = 0.8660254038f*triangleSide;	// sqrt(3)/2 * triangleSide
-	float vMargin = 0.5f*(windowWidth-h);
+	/*	triangleSide should have the largest value with triangleSide <= windowWidth - 2*minMargin	*
+	 *	and an h <= windowHeight - 2*minMargin. (h = sqrt(3)/2 * triangleSide)						*/
+	float triangleSide = std::min(windowWidth-2*minMargin , 1.1547005383f/* 2/sqrt(3) */*(windowHeight-2*minMargin));
+	float h = 0.8660254038f/* sqrt(3)/2 */*triangleSide;
+	float hMargin = 0.5f*(windowWidth-triangleSide);
+	float vMargin = 0.5f*(windowHeight-h);
 	Triangle t;
 
 	t.v1.x = 0.5*windowWidth;
 	t.v1.y = vMargin+h;
-	t.v2.x = margin;
+	t.v2.x = hMargin;
 	t.v2.y = vMargin;
-	t.v3.x = margin+triangleSide;
+	t.v3.x = hMargin+triangleSide;
 	t.v3.y = vMargin;
 	triangles.push_back(t);
 
@@ -209,8 +212,8 @@ int main(int argc, char **argv)
 	// glut initialization
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_MULTISAMPLE);
-	glutInitWindowSize(initialWindowSide,initialWindowSide);
-	glutInitWindowPosition(glutGet(GLUT_SCREEN_WIDTH)-initialWindowOffset-initialWindowSide,initialWindowOffset);
+	glutInitWindowSize(glutGet(GLUT_SCREEN_WIDTH)/2,glutGet(GLUT_SCREEN_HEIGHT)/2);
+	glutInitWindowPosition(glutGet(GLUT_SCREEN_WIDTH)-initialWindowOffset-glutGet(GLUT_SCREEN_WIDTH)/2,initialWindowOffset);
 	glutCreateWindow("Sierpinski Triangle");
 
 	// glew initialization
@@ -226,7 +229,6 @@ int main(int argc, char **argv)
 	glLineWidth(0.5);
 
 	// application initialization
-	//initializeAnimation();
 
 	// event handling initialization
 	glutIdleFunc(always);
