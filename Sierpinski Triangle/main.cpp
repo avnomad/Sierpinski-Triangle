@@ -23,7 +23,8 @@
 #include <vector>
 #include <Space-Time/Vector2D.h>
 
-#define windowSide 1000
+#define initialWindowSide 1000
+#define initialWindowOffset 20
 #define margin 20.0f
 #define levels 8
 
@@ -41,7 +42,10 @@ struct Triangle
 }; // end sturct Triangle
 
 static std::deque<Triangle> triangles;
-static float image[windowSide][windowSide][3];
+static unsigned windowHeight;
+static unsigned windowWidth;
+struct Float3 {float data[3];};	// a workaround because arrays can't be...
+static std::vector<Float3> image;	// ...assigned to each other.
 static std::vector<Triangle> vertices;
 static std::vector<Triangle> directions;
 
@@ -53,14 +57,14 @@ static float t = 0.0;
 
 void simpleDisplay()
 {
-	glDrawPixels(windowSide,windowSide,GL_RGB,GL_FLOAT,image);
+	glDrawPixels(windowWidth,windowHeight,GL_RGB,GL_FLOAT,image.data());
 	glutSwapBuffers();
 } // end function simpleDisplay
 
 
 void display()
 {
-	glDrawPixels(windowSide,windowSide,GL_RGB,GL_FLOAT,image);
+	glDrawPixels(windowWidth,windowHeight,GL_RGB,GL_FLOAT,image.data());
 
 	if(t<=1.0)
 	{
@@ -118,7 +122,7 @@ void display()
 		nNextLevel = 0;
 
 		++level;
-		glReadPixels(0,0,windowSide,windowSide,GL_RGB,GL_FLOAT,image);
+		glReadPixels(0,0,windowWidth,windowHeight,GL_RGB,GL_FLOAT,image.data());
 		if(level > levels)
 			glutDisplayFunc(simpleDisplay);
 	} // end else
@@ -133,14 +137,14 @@ void always()
 } // end function always
 
 
-void initialize()
+void initializeAnimation()
 {
-	float triangleSide = windowSide - 2*margin;
+	float triangleSide = windowWidth/*not always but should do for now...*/ - 2*margin;
 	float h = 0.8660254038f*triangleSide;	// sqrt(3)/2 * triangleSide
-	float vMargin = 0.5f*(windowSide-h);
+	float vMargin = 0.5f*(windowWidth-h);
 	Triangle t;
 
-	t.v1.x = 0.5*windowSide;
+	t.v1.x = 0.5*windowWidth;
 	t.v1.y = vMargin+h;
 	t.v2.x = margin;
 	t.v2.y = vMargin;
@@ -153,21 +157,28 @@ void initialize()
 } // end function initialize
 
 
+void clearAnimation()
+{
+	level = 0;
+	nCurrentLevel = 1;
+	nNextLevel = 0;
+	t = 0.0;
+
+	triangles.clear();
+	vertices.clear();
+	directions.clear();
+} // end function clearCurrentAnimation
+
+
 void keyboard(unsigned char key, int x, int y)
 {
 	switch(key)
 	{
 	case '\r':	// enter key
 		// reset
-		level = 0;
-		nCurrentLevel = 1;
-		nNextLevel = 0;
-		t = 0.0;
-		memset(image,0,sizeof(image));	// clear image to black
-		triangles.clear();
-		vertices.clear();
-		directions.clear();
-		initialize();
+		clearAnimation();
+		memset(image.data(),0,windowWidth*windowHeight*sizeof(Float3));	// clear image to black
+		initializeAnimation();
 		glutDisplayFunc(display);
 		break;
 	case 27:	// escape key
@@ -182,6 +193,14 @@ void reshape (int w, int h)
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluOrtho2D(0.0, (GLdouble) w, 0.0, (GLdouble) h);
+
+	windowWidth = w;
+	windowHeight = h;
+	image.resize(windowWidth*windowHeight);
+	clearAnimation();
+	memset(image.data(),0,windowWidth*windowHeight*sizeof(Float3));	// clear image to black
+	initializeAnimation();
+	glutDisplayFunc(display);
 } // end function reshape
 
 
@@ -190,8 +209,8 @@ int main(int argc, char **argv)
 	// glut initialization
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_MULTISAMPLE);
-	glutInitWindowSize(windowSide,windowSide);
-	glutInitWindowPosition(1270-windowSide,20);
+	glutInitWindowSize(initialWindowSide,initialWindowSide);
+	glutInitWindowPosition(glutGet(GLUT_SCREEN_WIDTH)-initialWindowOffset-initialWindowSide,initialWindowOffset);
 	glutCreateWindow("Sierpinski Triangle");
 
 	// glew initialization
@@ -207,7 +226,7 @@ int main(int argc, char **argv)
 	glLineWidth(0.5);
 
 	// application initialization
-	initialize();
+	//initializeAnimation();
 
 	// event handling initialization
 	glutIdleFunc(always);
