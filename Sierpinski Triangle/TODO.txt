@@ -1,0 +1,4 @@
+calculate base triangle size from window size
+base animation on time not frames
+copy to texture/buffer not memory
+host in a public repository
