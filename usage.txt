@@ -1,0 +1,4 @@
+Usage:
+
+Pressing <enter> or resizing the window resets the animation.
+Pressing <escape> quits the application.
